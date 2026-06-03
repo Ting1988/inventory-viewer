@@ -3,48 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>库存实时查看</title>
+    <title>库存实时查看 - 鼎丰库存系统</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', 'Roboto', '微软雅黑', sans-serif; background: #f1f5f9; min-height: 100vh; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { background: white; border-radius: 16px; padding: 20px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .header h1 { font-size: 1.5rem; color: #0f172a; display: flex; align-items: center; gap: 12px; }
-        .header .refresh-info { font-size: 0.8rem; color: #64748b; margin-top: 8px; display: flex; align-items: center; gap: 8px; }
-        .refresh-btn { padding: 4px 12px; border-radius: 20px; background: #3b82f6; color: white; border: none; font-size: 0.75rem; cursor: pointer; }
-        .search-box { display: flex; gap: 8px; margin-bottom: 16px; }
+        .header .refresh-info { font-size: 0.8rem; color: #64748b; margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .refresh-btn { padding: 4px 12px; border-radius: 20px; border: none; background: #3b82f6; color: white; cursor: pointer; }
+        .refresh-btn:hover { background: #2563eb; }
+        .force-refresh-btn { padding: 4px 12px; border-radius: 20px; border: none; background: #f59e0b; color: white; cursor: pointer; }
+        .force-refresh-btn:hover { background: #d97706; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .search-box input { flex: 1; padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.9rem; outline: none; }
-        .search-box select { padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.9rem; cursor: pointer; }
-        .table-wrapper { background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; padding: 20px 24px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 700px; table-layout: fixed; }
-        th { background: #f1f5f9; padding: 12px 12px; border: 1px solid #e2e8f0; color: #1e293b; font-weight: 600; position: sticky; top: 0; white-space: nowrap; position: relative; user-select: none; z-index: 10; }
-        td { padding: 8px 12px; border: 1px solid #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background 0.1s; }
+        .search-box select { padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.9rem; cursor: pointer; background: white; }
+        .table-wrapper { background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 900px; }
+        th { background: #f1f5f9; padding: 12px 12px; border: 1px solid #e2e8f0; color: #1e293b; font-weight: 600; position: sticky; top: 0; white-space: nowrap; cursor: pointer; user-select: none; }
+        th:hover { background: #e2e8f0; }
+        td { padding: 10px 12px; border: 1px solid #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         tr:hover { background: #f8fafc; }
-        td:hover { overflow: visible; white-space: normal; background: #f8fafc; z-index: 5; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         .empty-state { text-align: center; padding: 60px; color: #94a3b8; }
         .footer { text-align: center; padding: 16px; color: #94a3b8; font-size: 0.75rem; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 500; }
-        .status-low { background: #fef2f2; color: #dc2626; }
-        .status-normal { background: #f0fdf4; color: #16a34a; }
-        .status-high { background: #eff6ff; color: #2563eb; }
-        .auto-refresh-indicator { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; }
-        .pulse { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
+        .stock-low { color: #dc2626; font-weight: 600; }
+        .stock-normal { color: #16a34a; font-weight: 600; }
+        .pulse { width: 8px; height: 8px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; display: inline-block; margin-right: 6px; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .auto-refresh-indicator { display: inline-flex; align-items: center; gap: 4px; }
         
         .expand-cell { cursor: pointer; color: #2563eb; font-weight: 500; text-decoration: underline; }
-        .expand-cell:hover { color: #1d4ed8; }
-        .expand-icon { display: inline-block; transition: transform 0.2s; margin-right: 4px; }
-        .expand-icon.open { transform: rotate(90deg); }
         .detail-row { background: #f8fafc; }
         .detail-cell { padding: 0 !important; }
         .detail-table-wrapper { padding: 12px; background: #f1f5f9; border-radius: 16px; margin: 6px; }
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; background: white; border-radius: 12px; overflow: hidden; table-layout: fixed; }
-        .detail-table th, .detail-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .detail-table th { background: #e2e8f0; font-weight: 600; position: relative; }
-        .detail-table td:hover { overflow: visible; white-space: normal; background: #f8fafc; z-index: 5; position: relative; }
+        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; background: white; border-radius: 12px; overflow: hidden; }
+        .detail-table th, .detail-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; white-space: nowrap; }
+        .detail-table th { background: #e2e8f0; font-weight: 600; }
+        .expand-icon { display: inline-block; transition: transform 0.2s; margin-right: 4px; }
+        .expand-icon.open { transform: rotate(90deg); }
         
-        .stock-low { color: #dc2626; font-weight: 600; }
-        .stock-normal { color: #16a34a; font-weight: 600; }
+        .sort-icon { font-size: 0.7rem; margin-left: 4px; opacity: 0.5; }
+        .sort-icon.active { opacity: 1; color: #3b82f6; }
+        
+        .toast-msg {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #0f172a; color: white; padding: 8px 24px; border-radius: 48px;
+            font-size: 0.8rem; opacity: 0; transition: opacity 0.2s; z-index: 10000;
+            pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .toast-show { opacity: 1; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .header h1 { font-size: 1.2rem; }
+        }
     </style>
 </head>
 <body>
@@ -52,186 +64,253 @@
         <div class="header">
             <h1>📦 库存实时查看</h1>
             <div class="refresh-info">
-                <span class="auto-refresh-indicator"><span class="pulse"></span> 自动刷新中</span>
+                <span class="auto-refresh-indicator"><span class="pulse"></span> 自动刷新中（30秒）</span>
                 <span>|</span>
-                <span>上次更新: <span id="lastUpdate">--</span></span>
-                <button class="refresh-btn" onclick="loadInventory()">🔄 手动刷新</button>
+                <span>最后更新: <span id="lastUpdate">--</span></span>
+                <span>|</span>
+                <span>数据条数: <span id="dataCount">0</span></span>
+                <span>|</span>
+                <button class="refresh-btn" onclick="loadData(false)">🔄 普通刷新</button>
+                <button class="force-refresh-btn" onclick="loadData(true)">⚡ 强制刷新（跳过缓存）</button>
             </div>
         </div>
         
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="搜索料号、品名..." onkeyup="filterTable()">
-            <select id="monthFilter" onchange="filterTable()">
+            <input type="text" id="searchInput" placeholder="🔍 搜索料号、品名..." onkeyup="filterData()">
+            <select id="monthFilter" onchange="filterData()">
                 <option value="all">📅 全部月份</option>
                 <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
                 <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
                 <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
                 <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
             </select>
+            <button class="refresh-btn" onclick="clearFilter()" style="background:#64748b;">🗑️ 清除筛选</button>
         </div>
         
-        <div class="table-wrapper" id="tableContainer">
+        <div class="table-wrapper">
             <table id="inventoryTable">
-                <thead>
-                    <tr>
-                        <th style="width:6%">工厂</th><th style="width:6%">仓位</th><th style="width:10%">料号</th><th style="width:30%">品名</th>
-                        <th style="width:7%">期初数量</th><th style="width:7%">出货数量</th><th style="width:7%">剩余数量</th><th style="width:10%">出货明细</th><th style="width:17%">备注</th>
-                    </tr>
-                </thead>
+                <thead id="tableHeader"></thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="9" class="empty-state">加载中...</td></tr>
+                    <tr><td colspan="9" class="empty-state">⏳ 加载中...</td></tr>
                 </tbody>
             </table>
         </div>
         
-        <div class="footer">数据每30秒自动刷新 | 点击"出货明细"可展开查看详情</div>
+        <div class="footer">
+            📅 数据每30秒自动同步 | 点击"出货明细"可查看详情 | 点击表头可排序 | 强制刷新可跳过CDN缓存
+        </div>
     </div>
+    <div id="toastMsg" class="toast-msg"></div>
 
     <script>
-        const REFRESH_INTERVAL = 30000;
-        let refreshTimer = null;
-        let allData = [];
-        let expandedRows = new Set();
-
-        async function loadInventory() {
-            const btn = document.querySelector('.refresh-btn');
-            const originalText = btn.textContent;
-            btn.textContent = '🔄 刷新中...';
-            btn.disabled = true;
+        var DATA_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
+        var REFRESH_INTERVAL = 30000;
+        var allData = [];
+        var filteredData = [];
+        var expandedRows = new Set();
+        var currentSort = { column: '', direction: 'asc' };
+        
+        function showToast(msg, isErr) {
+            var t = document.getElementById('toastMsg');
+            t.innerText = msg;
+            t.classList.add('toast-show');
+            t.style.background = isErr ? '#dc2626' : '#1e293b';
+            setTimeout(function() { t.classList.remove('toast-show'); }, 2200);
+        }
+        
+        async function loadData(forceRefresh) {
+            var url = DATA_URL + '?t=' + Date.now();
+            if (forceRefresh) {
+                url = DATA_URL + '?t=' + Date.now() + '&force=' + Math.random();
+                showToast('⚡ 强制刷新中...');
+            }
             
-            let loaded = false;
-            
-            // 优先尝试从本地文件加载
             try {
-                const response = await fetch('inventory.json');
+                var response = await fetch(url, {
+                    cache: 'no-cache',
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                });
+                
                 if (response.ok) {
-                    const data = await response.json();
+                    var data = await response.json();
                     allData = data.rows || [];
-                    document.getElementById('lastUpdate').textContent = data.updateTime || '本地文件数据';
-                    renderTable(allData);
-                    btn.textContent = '✅ 本地文件加载成功';
-                    loaded = true;
+                    document.getElementById('lastUpdate').innerHTML = (data.updateTime || new Date().toLocaleString()) + (forceRefresh ? ' (强制)' : '');
+                    document.getElementById('dataCount').innerHTML = allData.length;
+                    localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: data.updateTime }));
+                    applyFilterAndSort();
+                    showToast('✅ 更新成功，共 ' + allData.length + ' 条');
+                } else {
+                    throw new Error('HTTP ' + response.status);
                 }
             } catch (error) {
-                console.log('本地文件加载失败，尝试本地存储');
-            }
-            
-            // 如果本地文件加载失败，尝试从本地存储加载
-            if (!loaded) {
-                try {
-                    const localData = localStorage.getItem('inventory_data');
-                    if (localData) {
-                        const data = JSON.parse(localData);
-                        allData = data.rows || [];
-                        document.getElementById('lastUpdate').textContent = data.updateTime || '本地存储数据';
-                        renderTable(allData);
-                        btn.textContent = '✅ 本地存储加载成功';
-                        loaded = true;
-                    }
-                } catch (error) {
-                    console.log('本地存储加载失败');
+                var cached = localStorage.getItem('inventory_cache');
+                if (cached) {
+                    var cacheData = JSON.parse(cached);
+                    allData = cacheData.rows || [];
+                    document.getElementById('lastUpdate').innerHTML = (cacheData.updateTime || '缓存') + ' (离线缓存)';
+                    document.getElementById('dataCount').innerHTML = allData.length;
+                    applyFilterAndSort();
+                    showToast('⚠️ 使用本地缓存数据', true);
+                } else {
+                    document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="empty-state">❌ 加载失败，请检查网络连接</td></tr>';
+                    showToast('❌ 加载失败', true);
                 }
             }
-            
-            // 如果都失败，尝试从 GitHub Pages 加载
-            if (!loaded) {
-                try {
-                    const response = await fetch('https://ting1988.github.io/inventory-viewer/inventory.json');
-                    if (response.ok) {
-                        const data = await response.json();
-                        allData = data.rows || [];
-                        document.getElementById('lastUpdate').textContent = data.updateTime || new Date().toLocaleString();
-                        renderTable(allData);
-                        btn.textContent = '✅ 本地文件加载成功';
-                        loaded = true;
-                    }
-                } catch (error) {
-                    console.log('本地文件加载失败');
-                }
-            }
-            
-            if (!loaded) {
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="empty-state">加载失败，请检查网络或使用库存表软件上传数据</td></tr>';
-                btn.textContent = '❌ 加载失败';
-            }
-            
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }, 2000);
         }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">暂无库存数据</td></tr>';
+        
+        function applyFilterAndSort() {
+            var data = allData.slice();
+            var searchText = document.getElementById('searchInput').value.toLowerCase();
+            var monthValue = document.getElementById('monthFilter').value;
+            
+            if (searchText) {
+                data = data.filter(function(row) {
+                    var partno = (row['料号'] || '').toLowerCase();
+                    var name = (row['品名'] || '').toLowerCase();
+                    return partno.indexOf(searchText) !== -1 || name.indexOf(searchText) !== -1;
+                });
+            }
+            
+            if (monthValue !== 'all') {
+                data = data.filter(function(row) {
+                    var updateTime = row['updateTime'] || '';
+                    var month = updateTime.match(/(\d{1,2})月/);
+                    return month && month[1] === monthValue;
+                });
+            }
+            
+            if (currentSort.column) {
+                data.sort(function(a, b) {
+                    var aVal = a[currentSort.column] || '';
+                    var bVal = b[currentSort.column] || '';
+                    var aNum = parseFloat(aVal);
+                    var bNum = parseFloat(bVal);
+                    if (!isNaN(aNum) && !isNaN(bNum)) { aVal = aNum; bVal = bNum; }
+                    if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            filteredData = data;
+            renderTable();
+        }
+        
+        function filterData() { applyFilterAndSort(); }
+        function clearFilter() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('monthFilter').value = 'all';
+            applyFilterAndSort();
+        }
+        
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            applyFilterAndSort();
+            updateSortIcons();
+        }
+        
+        function updateSortIcons() {
+            var headers = document.querySelectorAll('#tableHeader th');
+            for (var i = 0; i < headers.length; i++) {
+                var th = headers[i];
+                var col = th.getAttribute('data-col');
+                var icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    if (col === currentSort.column) {
+                        icon.innerHTML = currentSort.direction === 'asc' ? ' ↑' : ' ↓';
+                        icon.style.opacity = '1';
+                    } else {
+                        icon.innerHTML = ' ↕';
+                        icon.style.opacity = '0.3';
+                    }
+                }
+            }
+        }
+        
+        function renderTable() {
+            var thead = document.getElementById('tableHeader');
+            var tbody = document.getElementById('tableBody');
+            var headers = ['工厂', '仓位', '料号', '品名', '期初数量', '出货数量', '剩余数量', '出货明细', '备注'];
+            
+            thead.innerHTML = '<tr>';
+            for (var i = 0; i < headers.length; i++) {
+                var h = headers[i];
+                thead.innerHTML += '<th data-col="' + h + '" onclick="sortTable(\'' + h + '\')">' + h + '<span class="sort-icon"> ↕</span></th>';
+            }
+            thead.innerHTML += '</tr>';
+            
+            if (!filteredData.length) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">暂无数据</td></tr>';
                 return;
             }
-
-            tbody.innerHTML = data.map((row, index) => {
-                const remaining = parseFloat(row['剩余数量'] || 0);
-                const initial = parseFloat(row['期初数量'] || 0);
-                const isLow = initial > 0 && remaining < initial * 0.3;
-                const stockClass = isLow ? 'stock-low' : 'stock-normal';
-                const details = row['出货明细'] ? (typeof row['出货明细'] === 'string' ? JSON.parse(row['出货明细']) : row['出货明细']) : [];
-                const hasDetails = details && details.length > 0;
-                const isExpanded = expandedRows.has(index);
-                
-                const detailHtml = isExpanded && hasDetails ? `
-                    <tr class="detail-row"><td colspan="9" class="detail-cell">
-                        <div class="detail-table-wrapper"><table class="detail-table">
-                            <thead><tr><th style="width:12%">日期</th><th style="width:15%">扣减数量</th><th style="width:13%">操作人</th><th style="width:25%">项目编号</th><th style="width:35%">备注</th></tr></thead>
-                            <tbody>${details.map(d => `
-                                <tr>
-                                    <td>${d['日期'] || '-'}</td>
-                                    <td>${d['扣减数量'] || '-'}</td>
-                                    <td>${d['操作人'] || '-'}</td>
-                                    <td>${d['项目编号'] || '-'}</td>
-                                    <td>${d['备注'] || '-'}</td>
-                                </tr>
-                            `).join('')}</tbody>
-                        </table></div></td></tr>
-                ` : '';
-                
-                return `<tr>
-                    <td>${row['工厂'] || '-'}</td>
-                    <td>${row['仓位'] || '-'}</td>
-                    <td style="font-weight:500;color:#2563eb;">${row['料号'] || '-'}</td>
-                    <td>${row['品名'] || '-'}</td>
-                    <td>${row['期初数量'] || '-'}</td>
-                    <td>${row['出货数量'] || '-'}</td>
-                    <td class="${stockClass}">${remaining}</td>
-                    <td>${hasDetails ? `<span class="expand-cell" onclick="toggleExpand(${index})"><span class="expand-icon ${isExpanded ? 'open' : ''}">▶</span>查看明细 (${details.length})</span>` : '-'}</td>
-                    <td>${row['备注'] || '-'}</td>
-                </tr>${detailHtml}`;
-            }).join('');
-        }
-
-        function toggleExpand(index) {
-            expandedRows.has(index) ? expandedRows.delete(index) : expandedRows.add(index);
-            renderTable(allData);
-        }
-
-        function filterTable() {
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
-            const monthFilter = document.getElementById('monthFilter').value;
             
-            let filtered = allData.filter(row => {
-                const partno = (row['料号'] || '').toLowerCase();
-                const name = (row['品名'] || '').toLowerCase();
-                if (searchText && !partno.includes(searchText) && !name.includes(searchText)) return false;
-                if (monthFilter === 'all') return true;
-                const updateTime = row['updateTime'] || '';
-                const month = updateTime.match(/(\d{1,2})月/)?.[1];
-                return month === monthFilter;
+            var html = '';
+            for (var idx = 0; idx < filteredData.length; idx++) {
+                var row = filteredData[idx];
+                var remaining = parseFloat(row['剩余数量'] || 0);
+                var stockClass = remaining < 100 ? 'stock-low' : 'stock-normal';
+                
+                var details = [];
+                try {
+                    details = row['出货明细'] ? (typeof row['出货明细'] === 'string' ? JSON.parse(row['出货明细']) : row['出货明细']) : [];
+                } catch(e) {}
+                
+                var hasDetails = details.length > 0;
+                var isExpanded = expandedRows.has(idx);
+                
+                html += '<tr>';
+                html += '<td>' + escapeHtml(row['工厂'] || '-') + '</td>';
+                html += '<td>' + escapeHtml(row['仓位'] || '-') + '</td>';
+                html += '<td style="color:#2563eb;font-weight:500">' + escapeHtml(row['料号'] || '-') + '</td>';
+                html += '<td>' + escapeHtml(row['品名'] || '-') + '</td>';
+                html += '<td>' + (row['期初数量'] || '0') + '</td>';
+                html += '<td>' + (row['出货数量'] || '0') + '</td>';
+                html += '<td class="' + stockClass + '">' + remaining + '</td>';
+                html += '<td>' + (hasDetails ? '<span class="expand-cell" onclick="toggleExpand(' + idx + ')"><span class="expand-icon">▶</span>明细 (' + details.length + ')</span>' : '-') + '</td>';
+                html += '<td>' + escapeHtml(row['备注'] || '-') + '</td>';
+                html += '</tr>';
+                
+                if (isExpanded && hasDetails) {
+                    html += '<tr class="detail-row"><td colspan="9" class="detail-cell"><div class="detail-table-wrapper"><table class="detail-table"><thead><tr><th>日期</th><th>扣减数量</th><th>操作人</th><th>项目编号</th><th>备注</th></tr></thead><tbody>';
+                    for (var d = 0; d < details.length; d++) {
+                        html += '<tr>';
+                        html += '<td>' + escapeHtml(details[d]['日期'] || '-') + '</td>';
+                        html += '<td>' + escapeHtml(details[d]['扣减数量'] || '-') + '</td>';
+                        html += '<td>' + escapeHtml(details[d]['操作人'] || '-') + '</td>';
+                        html += '<td>' + escapeHtml(details[d]['项目编号'] || '-') + '</td>';
+                        html += '<td>' + escapeHtml(details[d]['备注'] || '-') + '</td>';
+                        html += '</tr>';
+                    }
+                    html += '</tbody></table></div></td></tr>';
+                }
+            }
+            tbody.innerHTML = html;
+            updateSortIcons();
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
             });
-            
-            renderTable(filtered);
         }
-
-        loadInventory();
-        refreshTimer = setInterval(loadInventory, REFRESH_INTERVAL);
-        window.addEventListener('beforeunload', () => { if (refreshTimer) clearInterval(refreshTimer); });
+        
+        function toggleExpand(idx) {
+            if (expandedRows.has(idx)) expandedRows.delete(idx);
+            else expandedRows.add(idx);
+            renderTable();
+        }
+        
+        loadData(false);
+        setInterval(function() { loadData(false); }, REFRESH_INTERVAL);
     </script>
 </body>
 </html>
