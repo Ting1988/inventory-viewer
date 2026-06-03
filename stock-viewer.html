@@ -101,31 +101,31 @@
             
             let loaded = false;
             
-            // 尝试从 GitHub Pages 加载
+            // 优先尝试从本地文件加载
             try {
-                const response = await fetch('https://ting1988.github.io/inventory-viewer/inventory.json');
+                const response = await fetch('inventory.json');
                 if (response.ok) {
                     const data = await response.json();
                     allData = data.rows || [];
-                    document.getElementById('lastUpdate').textContent = data.updateTime || new Date().toLocaleString();
+                    document.getElementById('lastUpdate').textContent = data.updateTime || '本地文件数据';
                     renderTable(allData);
-                    btn.textContent = '✅ 在线刷新成功';
+                    btn.textContent = '✅ 本地文件加载成功';
                     loaded = true;
                 }
             } catch (error) {
-                console.log('网络加载失败，尝试本地存储');
+                console.log('本地文件加载失败，尝试本地存储');
             }
             
-            // 如果网络加载失败，尝试从本地存储加载
+            // 如果本地文件加载失败，尝试从本地存储加载
             if (!loaded) {
                 try {
                     const localData = localStorage.getItem('inventory_data');
                     if (localData) {
                         const data = JSON.parse(localData);
                         allData = data.rows || [];
-                        document.getElementById('lastUpdate').textContent = data.updateTime || '本地数据';
+                        document.getElementById('lastUpdate').textContent = data.updateTime || '本地存储数据';
                         renderTable(allData);
-                        btn.textContent = '✅ 本地数据加载成功';
+                        btn.textContent = '✅ 本地存储加载成功';
                         loaded = true;
                     }
                 } catch (error) {
@@ -133,10 +133,10 @@
                 }
             }
             
-            // 如果都失败，尝试读取本地文件
+            // 如果都失败，尝试从 GitHub Pages 加载
             if (!loaded) {
                 try {
-                    const response = await fetch('inventory.json');
+                    const response = await fetch('https://ting1988.github.io/inventory-viewer/inventory.json');
                     if (response.ok) {
                         const data = await response.json();
                         allData = data.rows || [];
