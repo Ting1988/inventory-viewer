@@ -2,34 +2,139 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>库存实时查看</title>
+    <title>库存实时查看（独立版）</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', '微软雅黑', sans-serif; background: #f1f5f9; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .card { background: white; border-radius: 16px; padding: 16px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .btn { padding: 6px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 0.8rem; }
+        /* 强力重置表格样式，抵御外部污染 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', '微软雅黑', sans-serif;
+            background: #f1f5f9;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
         .btn-blue { background: #3b82f6; color: white; }
         .btn-orange { background: #f59e0b; color: white; }
         .btn-gray { background: #64748b; color: white; }
-        input, select { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 0.8rem; }
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 800px; }
-        th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; white-space: nowrap; vertical-align: middle; }
-        th { background: #f1f5f9; font-weight: 600; cursor: pointer; user-select: none; }
-        th:hover { background: #e2e8f0; }
-        tr:hover { background: #f8fafc; }
-        .stock-low { color: #dc2626; font-weight: 600; }
-        .expand-cell { color: #2563eb; cursor: pointer; text-decoration: underline; }
-        .detail-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; background: white; border-radius: 8px; overflow: hidden; }
-        .detail-table th, .detail-table td { border: 1px solid #e2e8f0; padding: 6px 8px; white-space: nowrap; }
-        .detail-table th { background: #e2e8f0; }
-        .footer { text-align: center; padding: 16px; color: #94a3b8; font-size: 0.7rem; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; z-index: 1000; opacity: 0; transition: opacity 0.2s; }
-        .sort-icon { margin-left: 4px; font-size: 0.7rem; opacity: 0.4; }
-        .sort-icon.active { opacity: 1; color: #3b82f6; }
+        input, select {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        /* 核心修复：强制表格及单元格为表格布局，防止外部样式破坏 */
+        table, .table-wrapper table {
+            display: table !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            min-width: 800px !important;
+        }
+        thead, .table-wrapper thead {
+            display: table-header-group !important;
+        }
+        tbody, .table-wrapper tbody {
+            display: table-row-group !important;
+        }
+        tr, .table-wrapper tr {
+            display: table-row !important;
+        }
+        th, td, .table-wrapper th, .table-wrapper td {
+            display: table-cell !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px 10px !important;
+            text-align: left !important;
+            white-space: nowrap !important;
+            vertical-align: middle !important;
+        }
+        th {
+            background: #f1f5f9 !important;
+            font-weight: 600 !important;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background: #e2e8f0 !important;
+        }
+        tr:hover {
+            background: #f8fafc !important;
+        }
+        .stock-low {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .expand-cell {
+            color: #2563eb;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .detail-table, .detail-table-wrapper .detail-table {
+            display: table !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .detail-table th, .detail-table td {
+            border: 1px solid #e2e8f0 !important;
+            padding: 6px 8px !important;
+            white-space: nowrap !important;
+        }
+        .footer {
+            text-align: center;
+            padding: 16px;
+            color: #94a3b8;
+            font-size: 0.7rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sort-icon {
+            margin-left: 4px;
+            font-size: 0.7rem;
+            opacity: 0.4;
+        }
+        .sort-icon.active {
+            opacity: 1;
+            color: #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -85,46 +190,25 @@
     }
     
     async function loadData(force) {
-        // 强制刷新：使用时间戳 + 随机数 + 禁用缓存头
-        var url = DATA_URL;
-        if (force) {
-            // 添加时间戳和随机数，彻底绕过所有缓存
-            url = DATA_URL + '?t=' + Date.now() + '&r=' + Math.random();
-        } else {
-            url = DATA_URL + '?t=' + Date.now();
-        }
-        
-        showMsg(force ? '⚡ 强制刷新中（绕过缓存）...' : '🔄 刷新中...');
-        
+        var url = force ? DATA_URL + '?t=' + Date.now() + '&r=' + Math.random() : DATA_URL + '?t=' + Date.now();
+        showMsg(force ? '⚡ 强制刷新...' : '🔄 刷新中...');
         try {
             var res = await fetch(url, {
-                cache: 'no-store',           // 禁止使用任何缓存
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                }
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
             });
             if (res.ok) {
                 var data = await res.json();
-                // 检查数据是否真的更新（对比最后更新时间）
-                var newUpdateTime = data.updateTime || new Date().toLocaleString();
-                var oldUpdateTime = document.getElementById('lastUpdate').innerText;
-                if (force || oldUpdateTime !== newUpdateTime) {
-                    allData = data.rows || [];
-                    document.getElementById('lastUpdate').innerHTML = newUpdateTime + (force ? ' (强制)' : '');
-                    document.getElementById('dataCount').innerHTML = allData.length;
-                    localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: data.updateTime }));
-                    applyFilter();
-                    showMsg('✅ 更新成功，共 ' + allData.length + ' 条');
-                } else {
-                    showMsg('数据已是最新', false);
-                }
+                allData = data.rows || [];
+                document.getElementById('lastUpdate').innerHTML = (data.updateTime || new Date().toLocaleString()) + (force ? ' (强制)' : '');
+                document.getElementById('dataCount').innerHTML = allData.length;
+                localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: data.updateTime }));
+                applyFilter();
+                showMsg('✅ 更新成功，共 ' + allData.length + ' 条');
             } else {
                 throw new Error('HTTP ' + res.status);
             }
         } catch(e) {
-            console.warn(e);
             var cached = localStorage.getItem('inventory_cache');
             if (cached) {
                 var cache = JSON.parse(cached);
@@ -144,24 +228,20 @@
         var search = document.getElementById('searchInput').value.toLowerCase();
         var month = document.getElementById('monthFilter').value;
         var data = allData.slice();
-        
         if (search) {
             data = data.filter(function(r) {
                 return (r['料号'] || '').toLowerCase().includes(search) || (r['品名'] || '').toLowerCase().includes(search);
             });
         }
-        
         if (month !== 'all') {
             data = data.filter(function(r) {
                 var m = (r['updateTime'] || '').match(/(\d{1,2})月/);
                 return m && m[1] === month;
             });
         }
-        
         if (sortColumn) {
             data.sort(function(a, b) {
-                var av = a[sortColumn] || '';
-                var bv = b[sortColumn] || '';
+                var av = a[sortColumn] || '', bv = b[sortColumn] || '';
                 var an = parseFloat(av), bn = parseFloat(bv);
                 if (!isNaN(an) && !isNaN(bn)) { av = an; bv = bn; }
                 if (av < bv) return sortDirection === 'asc' ? -1 : 1;
@@ -169,7 +249,6 @@
                 return 0;
             });
         }
-        
         filteredData = data;
         renderTable();
     }
@@ -182,12 +261,8 @@
     }
     
     function sortBy(col) {
-        if (sortColumn === col) {
-            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            sortColumn = col;
-            sortDirection = 'asc';
-        }
+        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        else { sortColumn = col; sortDirection = 'asc'; }
         applyFilter();
         updateSortIcons();
     }
@@ -214,8 +289,6 @@
         var thead = document.getElementById('tableHeader');
         var tbody = document.getElementById('tableBody');
         var headers = ['工厂', '仓位', '料号', '品名', '期初数量', '出货数量', '剩余数量', '出货明细', '备注'];
-        
-        // 生成横向表头
         var headerHtml = '<tr>';
         for (var i = 0; i < headers.length; i++) {
             var h = headers[i];
@@ -228,21 +301,15 @@
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center">暂无数据<\/td><\/tr>';
             return;
         }
-        
         var rowsHtml = '';
         for (var idx = 0; idx < filteredData.length; idx++) {
             var row = filteredData[idx];
             var remaining = parseFloat(row['剩余数量'] || 0);
             var stockClass = remaining < 100 ? 'stock-low' : '';
-            
             var details = [];
-            try {
-                details = row['出货明细'] ? (typeof row['出货明细'] === 'string' ? JSON.parse(row['出货明细']) : row['出货明细']) : [];
-            } catch(e) {}
-            
+            try { details = row['出货明细'] ? (typeof row['出货明细'] === 'string' ? JSON.parse(row['出货明细']) : row['出货明细']) : []; } catch(e) {}
             var hasDetails = details.length > 0;
             var isExpanded = expandedRows.has(idx);
-            
             rowsHtml += '<tr>';
             rowsHtml += '<td>' + escapeHtml(row['工厂'] || '-') + '<\/td>';
             rowsHtml += '<td>' + escapeHtml(row['仓位'] || '-') + '<\/td>';
@@ -254,7 +321,6 @@
             rowsHtml += '<td>' + (hasDetails ? '<span class="expand-cell" onclick="toggleExpand(' + idx + ')">📋 明细 (' + details.length + ')</span>' : '-') + '<\/td>';
             rowsHtml += '<td>' + escapeHtml(row['备注'] || '-') + '<\/td>';
             rowsHtml += '<\/tr>';
-            
             if (isExpanded && hasDetails) {
                 rowsHtml += '<tr class="detail-row"><td colspan="9" style="padding:12px;background:#f8fafc;"><div style="overflow-x:auto;"><table class="detail-table"><thead><tr><th>日期</th><th>扣减数量</th><th>操作人</th><th>项目编号</th><th>备注</th><\/tr><\/thead><tbody>';
                 for (var d = 0; d < details.length; d++) {
@@ -289,9 +355,7 @@
         renderTable();
     }
     
-    // 初始加载
     loadData(false);
-    // 每30秒自动刷新（普通模式，非强制）
     setInterval(function() { loadData(false); }, 30000);
 </script>
 </body>
