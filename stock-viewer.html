@@ -300,6 +300,7 @@
     // 加载数据（普通刷新，不加大量随机参数，但加时间戳避免强缓存）
     async function loadData(showLoadingMsg) {
         var btn = document.getElementById('refreshBtn');
+        var oldUpdateTime = document.getElementById('lastUpdate').innerHTML;
         if (showLoadingMsg !== false) {
             btn.textContent = '⏳ 加载中...';
             btn.disabled = true;
@@ -322,7 +323,17 @@
                 // 更新缓存
                 localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
                 applyFilter();
-                showMsg('✅ 数据已更新，共 ' + allData.length + ' 条');
+                
+                // 智能提示：判断是否真正更新了数据
+                if (showLoadingMsg !== false) {
+                    if (oldUpdateTime !== updateTime && oldUpdateTime !== '--') {
+                        showMsg('✅ 数据已成功更新！共 ' + allData.length + ' 条');
+                    } else if (oldUpdateTime === '--') {
+                        showMsg('✅ 数据加载成功！共 ' + allData.length + ' 条');
+                    } else {
+                        showMsg('⏳ 数据暂未更新，请等待1-3分钟后再刷新', true);
+                    }
+                }
             } else {
                 throw new Error('HTTP ' + response.status);
             }
