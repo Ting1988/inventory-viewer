@@ -286,15 +286,45 @@
     
     function showMsg(msg, type) {
         var toast = document.getElementById('toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast';
+            document.body.appendChild(toast);
+        }
         toast.textContent = msg;
-        toast.className = 'toast show';
-        if (type === 'success') toast.classList.add('success');
-        else if (type === 'warning') toast.classList.add('warning');
-        else if (type === 'error') toast.classList.add('error');
-        else toast.style.background = '#1e293b';
-        setTimeout(function() { 
-            toast.classList.remove('show');
-            toast.className = 'toast';
+        toast.className = 'toast';
+        toast.style.opacity = '1';
+        toast.style.transition = 'opacity 0.3s';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.padding = '12px 24px';
+        toast.style.borderRadius = '20px';
+        toast.style.fontSize = '0.9rem';
+        toast.style.zIndex = '1000';
+        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        toast.style.maxWidth = '90%';
+        toast.style.textAlign = 'center';
+        toast.style.pointerEvents = 'none';
+        
+        if (type === 'success') {
+            toast.style.background = '#10b981';
+            toast.style.color = 'white';
+        } else if (type === 'warning') {
+            toast.style.background = '#f59e0b';
+            toast.style.color = 'white';
+        } else if (type === 'error') {
+            toast.style.background = '#dc2626';
+            toast.style.color = 'white';
+        } else {
+            toast.style.background = '#1e293b';
+            toast.style.color = 'white';
+        }
+        
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(function() { 
+            toast.style.opacity = '0';
         }, 5000);
     }
     
