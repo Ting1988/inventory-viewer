@@ -132,35 +132,20 @@
             font-size: 0.75rem;
         }
         .toast {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1e293b;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        z-index: 1000;
-        opacity: 0;
-        transition: opacity 0.3s;
-        pointer-events: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        max-width: 90%;
-        text-align: center;
-    }
-    .toast.show {
-        opacity: 1;
-    }
-    .toast.success {
-        background: #10b981;
-    }
-    .toast.warning {
-        background: #f59e0b;
-    }
-    .toast.error {
-        background: #dc2626;
-    }
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
         .sort-icon {
             margin-left: 4px;
             font-size: 0.7rem;
@@ -284,48 +269,12 @@
         }
     }
     
-    function showMsg(msg, type) {
+    function showMsg(msg, isErr) {
         var toast = document.getElementById('toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'toast';
-            document.body.appendChild(toast);
-        }
         toast.textContent = msg;
-        toast.className = 'toast';
+        toast.style.background = isErr ? '#dc2626' : '#1e293b';
         toast.style.opacity = '1';
-        toast.style.transition = 'opacity 0.3s';
-        toast.style.position = 'fixed';
-        toast.style.bottom = '20px';
-        toast.style.left = '50%';
-        toast.style.transform = 'translateX(-50%)';
-        toast.style.padding = '12px 24px';
-        toast.style.borderRadius = '20px';
-        toast.style.fontSize = '0.9rem';
-        toast.style.zIndex = '1000';
-        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-        toast.style.maxWidth = '90%';
-        toast.style.textAlign = 'center';
-        toast.style.pointerEvents = 'none';
-        
-        if (type === 'success') {
-            toast.style.background = '#10b981';
-            toast.style.color = 'white';
-        } else if (type === 'warning') {
-            toast.style.background = '#f59e0b';
-            toast.style.color = 'white';
-        } else if (type === 'error') {
-            toast.style.background = '#dc2626';
-            toast.style.color = 'white';
-        } else {
-            toast.style.background = '#1e293b';
-            toast.style.color = 'white';
-        }
-        
-        clearTimeout(window.toastTimer);
-        window.toastTimer = setTimeout(function() { 
-            toast.style.opacity = '0';
-        }, 5000);
+        setTimeout(function() { toast.style.opacity = '0'; }, 3000);
     }
     
     // 带超时的fetch
@@ -351,7 +300,6 @@
     // 加载数据（普通刷新，不加大量随机参数，但加时间戳避免强缓存）
     async function loadData(showLoadingMsg) {
         var btn = document.getElementById('refreshBtn');
-        var oldUpdateTime = document.getElementById('lastUpdate').innerHTML;
         if (showLoadingMsg !== false) {
             btn.textContent = '⏳ 加载中...';
             btn.disabled = true;
@@ -374,17 +322,7 @@
                 // 更新缓存
                 localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
                 applyFilter();
-                
-                // 智能提示：判断是否真正更新了数据
-                if (showLoadingMsg !== false) {
-                    if (oldUpdateTime !== updateTime && oldUpdateTime !== '--') {
-                        showMsg('✅ 数据已成功更新！共 ' + allData.length + ' 条', 'success');
-                    } else if (oldUpdateTime === '--') {
-                        showMsg('✅ 数据加载成功！共 ' + allData.length + ' 条', 'success');
-                    } else {
-                        showMsg('⏳ 数据暂未更新，请等待1-3分钟后再刷新', 'warning');
-                    }
-                }
+                showMsg('✅ 数据已更新，共 ' + allData.length + ' 条');
             } else {
                 throw new Error('HTTP ' + response.status);
             }
@@ -398,12 +336,12 @@
                 document.getElementById('lastUpdate').innerHTML = (cache.updateTime || '缓存') + ' (离线)';
                 document.getElementById('dataCount').innerHTML = allData.length;
                 applyFilter();
-                showMsg('⚠️ 网络请求失败，显示本地缓存数据', 'warning');
+                showMsg('⚠️ 网络请求失败，显示本地缓存数据', true);
             } else if (!allData.length) {
                 document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" style="text-align:center">❌ 无法加载数据，请检查网络<\/td><\/tr>';
-                showMsg('❌ 加载失败，请检查网络', 'error');
+                showMsg('❌ 加载失败，请检查网络', true);
             } else {
-                showMsg('⚠️ 刷新失败，仍显示旧数据', 'warning');
+                showMsg('⚠️ 刷新失败，仍显示旧数据', true);
             }
         } finally {
             if (showLoadingMsg !== false) {
