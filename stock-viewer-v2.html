@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>库存实时查看</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', '微软雅黑', sans-serif;
+            background: #f1f5f9;
+            padding: 16px;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .btn {
+            padding: 6px 18px;
+            border-radius: 24px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .btn-blue {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-blue:hover {
+            background: #2563eb;
+        }
+        .btn-gray {
+            background: #64748b;
+            color: white;
+        }
+        input, select {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 800px;
+            table-layout: auto;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+            word-break: break-word;
+            white-space: normal;
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            white-space: nowrap;
+        }
+        th:hover {
+            background: #e2e8f0;
+        }
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+        }
+        .resize-handle:hover {
+            background: rgba(59,130,246,0.3);
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .stock-low {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .expand-cell {
+            color: #2563eb;
+            cursor: pointer;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: auto;
+        }
+        .detail-table th, .detail-table td {
+            border: 1px solid #e2e8f0;
+            padding: 4px 6px;
+            white-space: nowrap;
+        }
+        .footer {
+            text-align: center;
+            padding: 12px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .sort-icon {
+            margin-left: 4px;
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+        .sort-icon.active {
+            opacity: 1;
+            color: #3b82f6;
+        }
+        @media (max-width: 1000px) {
+            body { font-size: 13px; }
+            table { font-size: 12px; }
+            th, td { padding: 6px 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="flex-row">
+            <div>
+                <h2 style="font-size: 1.4rem;">📦 库存实时查看</h2>
+                <div style="margin-top: 6px; font-size: 0.8rem; color: #475569;">
+                    <span>🕒 最后更新: <span id="lastUpdate">--</span></span>&nbsp;&nbsp;|&nbsp;&nbsp;
+                    <span>📊 数据条数: <span id="dataCount">0</span></span>
+                </div>
+            </div>
+            <button class="btn btn-blue" id="refreshBtn">🔄 刷新数据</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="flex-row">
+            <input type="text" id="searchInput" placeholder="🔍 搜索料号/品名..." style="flex:2" onkeyup="filterData()">
+            <select id="monthFilter" onchange="filterData()">
+                <option value="all">全部月份</option>
+                <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+            <button class="btn btn-gray" id="clearFilterBtn">清除筛选</button>
+        </div>
+    </div>
+    
+    <div class="card table-wrapper">
+        <table id="mainTable">
+            <thead id="tableHeader"></thead>
+            <tbody id="tableBody"><tr><td colspan="9" style="text-align:center">加载中...<\/td><\/tr><\/tbody>
+        <\/table>
+    <\/div>
+    <div class="footer">👉 拖动表头右侧边缘可调整列宽（自动保存） | 点击表头排序 | 点击"明细"展开详情<\/div>
+<\/div>
+<div id="toast" class="toast"><\/div>
+
+<script>
+    var DATA_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
+    var allData = [];
+    var filteredData = [];
+    var expandedRows = new Set();
+    var sortColumn = '';
+    var sortDirection = 'asc';
+    
+    // 列宽保存
+    var columnWidths = {};
+    var STORAGE_KEY = 'inventory_column_widths';
+    
+    function loadColumnWidths() {
+        var saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try { columnWidths = JSON.parse(saved); } catch(e) {}
+        }
+    }
+    
+    function saveColumnWidths() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(columnWidths));
+    }
+    
+    function applyColumnWidths() {
+        var ths = document.querySelectorAll('#tableHeader th');
+        for (var i = 0; i < ths.length; i++) {
+            var colName = ths[i].getAttribute('data-col');
+            if (colName && columnWidths[colName]) {
+                ths[i].style.width = columnWidths[colName] + 'px';
+            } else {
+                ths[i].style.width = '';
+            }
+        }
+    }
+    
+    function initResize() {
+        var ths = document.querySelectorAll('#tableHeader th');
+        for (var i = 0; i < ths.length; i++) {
+            var th = ths[i];
+            if (th.querySelector('.resize-handle')) continue;
+            var handle = document.createElement('div');
+            handle.className = 'resize-handle';
+            th.appendChild(handle);
+            var colName = th.getAttribute('data-col');
+            handle.addEventListener('mousedown', function(e, th, col) {
+                return function(e) {
+                    e.preventDefault();
+                    var startX = e.clientX;
+                    var startWidth = th.offsetWidth;
+                    function onMouseMove(me) {
+                        var newWidth = startWidth + (me.clientX - startX);
+                        if (newWidth >= 40) {
+                            th.style.width = newWidth + 'px';
+                            columnWidths[col] = newWidth;
+                        }
+                    }
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        saveColumnWidths();
+                    }
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                };
+            }(e, th, colName));
+        }
+    }
+    
+    function showMsg(msg, isErr) {
+        var toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.background = isErr ? '#dc2626' : '#1e293b';
+        toast.style.opacity = '1';
+        setTimeout(function() { toast.style.opacity = '0'; }, 3000);
+    }
+    
+    // 带超时的fetch
+    function fetchWithTimeout(url, options, timeout) {
+        return new Promise(function(resolve, reject) {
+            var controller = new AbortController();
+            var signal = controller.signal;
+            var fetchPromise = fetch(url, Object.assign({}, options, { signal: signal }));
+            var timer = setTimeout(function() {
+                controller.abort();
+                reject(new Error('请求超时（' + timeout + '秒）'));
+            }, timeout * 1000);
+            fetchPromise.then(function(res) {
+                clearTimeout(timer);
+                resolve(res);
+            }).catch(function(err) {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+    }
+    
+    // 加载数据（普通刷新，不加大量随机参数，但加时间戳避免强缓存）
+    async function loadData(showLoadingMsg) {
+        var btn = document.getElementById('refreshBtn');
+        if (showLoadingMsg !== false) {
+            btn.textContent = '⏳ 加载中...';
+            btn.disabled = true;
+        }
+        // 加时间戳避免浏览器缓存
+        var url = DATA_URL + '?t=' + Date.now();
+        
+        try {
+            var response = await fetchWithTimeout(url, {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache' }
+            }, 10);
+            
+            if (response.ok) {
+                var data = await response.json();
+                allData = data.rows || [];
+                var updateTime = data.updateTime || new Date().toLocaleString();
+                document.getElementById('lastUpdate').innerHTML = updateTime;
+                document.getElementById('dataCount').innerHTML = allData.length;
+                // 更新缓存
+                localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
+                applyFilter();
+                showMsg('✅ 数据已更新，共 ' + allData.length + ' 条');
+            } else {
+                throw new Error('HTTP ' + response.status);
+            }
+        } catch (error) {
+            console.error('加载失败:', error);
+            // 如果网络失败，尝试使用本地缓存
+            var cached = localStorage.getItem('inventory_cache');
+            if (cached && (!allData.length || error.message.includes('超时'))) {
+                var cache = JSON.parse(cached);
+                allData = cache.rows || [];
+                document.getElementById('lastUpdate').innerHTML = (cache.updateTime || '缓存') + ' (离线)';
+                document.getElementById('dataCount').innerHTML = allData.length;
+                applyFilter();
+                showMsg('⚠️ 网络请求失败，显示本地缓存数据', true);
+            } else if (!allData.length) {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" style="text-align:center">❌ 无法加载数据，请检查网络<\/td><\/tr>';
+                showMsg('❌ 加载失败，请检查网络', true);
+            } else {
+                showMsg('⚠️ 刷新失败，仍显示旧数据', true);
+            }
+        } finally {
+            if (showLoadingMsg !== false) {
+                btn.textContent = '🔄 刷新数据';
+                btn.disabled = false;
+            }
+        }
+    }
+    
+    function applyFilter() {
+        var search = document.getElementById('searchInput').value.toLowerCase();
+        var month = document.getElementById('monthFilter').value;
+        var data = allData.slice();
+        if (search) {
+            data = data.filter(function(r) {
+                return (r['料号'] || '').toLowerCase().includes(search) || (r['品名'] || '').toLowerCase().includes(search);
+            });
+        }
+        if (month !== 'all') {
+            data = data.filter(function(r) {
+                var m = (r['updateTime'] || '').match(/(\d{1,2})月/);
+                return m && m[1] === month;
+            });
+        }
+        if (sortColumn) {
+            data.sort(function(a, b) {
+                var av = a[sortColumn] || '', bv = b[sortColumn] || '';
+                var an = parseFloat(av), bn = parseFloat(bv);
+                if (!isNaN(an) && !isNaN(bn)) { av = an; bv = bn; }
+                if (av < bv) return sortDirection === 'asc' ? -1 : 1;
+                if (av > bv) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        filteredData = data;
+        renderTable();
+        applyColumnWidths();
+        initResize();
+    }
+    
+    function filterData() { applyFilter(); }
+    function clearFilter() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('monthFilter').value = 'all';
+        applyFilter();
+    }
+    
+    function sortBy(col) {
+        if (sortColumn === col) sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        else { sortColumn = col; sortDirection = 'asc'; }
+        applyFilter();
+        updateSortIcons();
+    }
+    
+    function updateSortIcons() {
+        var headers = document.querySelectorAll('#tableHeader th');
+        for (var i = 0; i < headers.length; i++) {
+            var th = headers[i];
+            var col = th.getAttribute('data-col');
+            var icon = th.querySelector('.sort-icon');
+            if (icon) {
+                if (col === sortColumn) {
+                    icon.textContent = sortDirection === 'asc' ? ' ↑' : ' ↓';
+                    icon.classList.add('active');
+                } else {
+                    icon.textContent = ' ↕';
+                    icon.classList.remove('active');
+                }
+            }
+        }
+    }
+    
+    function renderTable() {
+        var thead = document.getElementById('tableHeader');
+        var tbody = document.getElementById('tableBody');
+        var headers = ['工厂', '仓位', '料号', '品名', '期初数量', '出货数量', '剩余数量', '出货明细', '备注'];
+        var headerHtml = '<tr>';
+        for (var i = 0; i < headers.length; i++) {
+            var h = headers[i];
+            headerHtml += '<th data-col="' + h + '" onclick="sortBy(\'' + h + '\')">' + h + '<span class="sort-icon"> ↕</span></th>';
+        }
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+        
+        if (!filteredData.length) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center">暂无数据<\/td><\/tr>';
+            return;
+        }
+        var rowsHtml = '';
+        for (var idx = 0; idx < filteredData.length; idx++) {
+            var row = filteredData[idx];
+            var remaining = parseFloat(row['剩余数量'] || 0);
+            var stockClass = remaining < 100 ? 'stock-low' : '';
+            var details = [];
+            try { details = row['出货明细'] ? (typeof row['出货明细'] === 'string' ? JSON.parse(row['出货明细']) : row['出货明细']) : []; } catch(e) {}
+            var hasDetails = details.length > 0;
+            var isExpanded = expandedRows.has(idx);
+            rowsHtml += '<tr>';
+            rowsHtml += '<td>' + escapeHtml(row['工厂'] || '-') + '<\/td>';
+            rowsHtml += '<td>' + escapeHtml(row['仓位'] || '-') + '<\/td>';
+            rowsHtml += '<td style="font-weight:500;">' + escapeHtml(row['料号'] || '-') + '<\/td>';
+            rowsHtml += '<td>' + escapeHtml(row['品名'] || '-') + '<\/td>';
+            rowsHtml += '<td>' + (row['期初数量'] || '0') + '<\/td>';
+            rowsHtml += '<td>' + (row['出货数量'] || '0') + '<\/td>';
+            rowsHtml += '<td class="' + stockClass + '">' + remaining + '<\/td>';
+            rowsHtml += '<td>' + (hasDetails ? '<span class="expand-cell" onclick="toggleExpand(' + idx + ')">📋 明细 (' + details.length + ')</span>' : '-') + '<\/td>';
+            rowsHtml += '<td>' + escapeHtml(row['备注'] || '-') + '<\/td>';
+            rowsHtml += '<\/tr>';
+            if (isExpanded && hasDetails) {
+                rowsHtml += '<tr class="detail-row"><td colspan="9" style="padding:8px;background:#f8fafc;"><div style="overflow-x:auto;"><table class="detail-table"><thead><tr><th>日期</th><th>扣减数量</th><th>操作人</th><th>项目编号</th><th>备注</th><\/tr><\/thead><tbody>';
+                for (var d = 0; d < details.length; d++) {
+                    rowsHtml += '<tr>';
+                    rowsHtml += '<td>' + escapeHtml(details[d]['日期'] || '-') + '<\/td>';
+                    rowsHtml += '<td>' + escapeHtml(details[d]['扣减数量'] || '-') + '<\/td>';
+                    rowsHtml += '<td>' + escapeHtml(details[d]['操作人'] || '-') + '<\/td>';
+                    rowsHtml += '<td>' + escapeHtml(details[d]['项目编号'] || '-') + '<\/td>';
+                    rowsHtml += '<td>' + escapeHtml(details[d]['备注'] || '-') + '<\/td>';
+                    rowsHtml += '<\/tr>';
+                }
+                rowsHtml += '<\/tbody><\/table><\/div><\/td><\/tr>';
+            }
+        }
+        tbody.innerHTML = rowsHtml;
+        updateSortIcons();
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function toggleExpand(idx) {
+        if (expandedRows.has(idx)) expandedRows.delete(idx);
+        else expandedRows.add(idx);
+        renderTable();
+        applyColumnWidths();
+        initResize();
+    }
+    
+    // 初始化
+    loadColumnWidths();
+    document.getElementById('refreshBtn').addEventListener('click', function() { loadData(true); });
+    document.getElementById('clearFilterBtn').addEventListener('click', clearFilter);
+    
+    // 页面加载：先显示缓存（如果有），然后后台加载最新数据
+    var cached = localStorage.getItem('inventory_cache');
+    if (cached) {
+        try {
+            var cache = JSON.parse(cached);
+            allData = cache.rows || [];
+            document.getElementById('lastUpdate').innerHTML = (cache.updateTime || '缓存') + ' (加载中...)';
+            document.getElementById('dataCount').innerHTML = allData.length;
+            applyFilter();
+        } catch(e) {}
+    }
+    // 后台加载最新数据（不显示加载动画，避免闪烁）
+    loadData(false);
+</script>
+</body>
+</html>
