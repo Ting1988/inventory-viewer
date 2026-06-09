@@ -247,11 +247,9 @@
             handle.className = 'resize-handle';
             th.appendChild(handle);
             var colName = th.getAttribute('data-col');
-            handle.addEventListener('mousedown', function(e, th, col) {
-                return function(e) {
-                    e.preventDefault();
-                    var startX = e.clientX;
-                    var startWidth = th.offsetWidth;
+            handle.addEventListener('mousedown', function(e) {
+                var startX = e.clientX;
+                var startWidth = th.offsetWidth;
                     function onMouseMove(me) {
                         var newWidth = startWidth + (me.clientX - startX);
                         if (newWidth >= 40) {
@@ -266,8 +264,7 @@
                     }
                     document.addEventListener('mousemove', onMouseMove);
                     document.addEventListener('mouseup', onMouseUp);
-                };
-            }(e, th, colName));
+            });
         }
     }
     
