@@ -270,10 +270,14 @@
     
     function showMsg(msg, isErr) {
         var toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = isErr ? '#dc2626' : '#1e293b';
-        toast.style.opacity = '1';
-        setTimeout(function() { toast.style.opacity = '0'; }, 3000);
+        if (toast) {
+            toast.textContent = msg;
+            toast.style.background = isErr ? '#dc2626' : '#1e293b';
+            toast.style.opacity = '1';
+            setTimeout(function() { toast.style.opacity = '0'; }, 3000);
+        } else {
+            console.log(isErr ? '❌ ' : '✅ ', msg);
+        }
     }
     
     // 带超时的fetch
@@ -324,15 +328,27 @@
             }
             
             if (response.ok) {
-                var data = await response.json();
-                allData = data.rows || [];
-                var updateTime = data.updateTime || new Date().toLocaleString();
-                document.getElementById('lastUpdate').innerHTML = updateTime;
-                document.getElementById('dataCount').innerHTML = allData.length;
-                // 更新缓存
-                localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
-                applyFilter();
-                showMsg('✅ 数据已更新，共 ' + allData.length + ' 条');
+                var text = await response.text();
+                // 彻底解决 SyntaxError: 自动切除末尾多余字符（如Git冲突标记或意外追加的乱码）
+                try {
+                    var firstBrace = text.indexOf('{');
+                    var lastBrace = text.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                        text = text.substring(firstBrace, lastBrace + 1);
+                    }
+                    var data = JSON.parse(text);
+                    allData = data.rows || [];
+                    var updateTime = data.updateTime || new Date().toLocaleString();
+                    document.getElementById('lastUpdate').innerHTML = updateTime;
+                    document.getElementById('dataCount').innerHTML = allData.length;
+                    // 更新缓存
+                    localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
+                    applyFilter();
+                    showMsg('✅ 数据已更新，共 ' + allData.length + ' 条');
+                } catch (parseErr) {
+                    console.error('JSON解析失败:', parseErr, text.substring(0, 100) + '...');
+                    showMsg('❌ 数据格式损坏，请尝试重新导出并上传', true);
+                }
             } else {
                 throw new Error('HTTP ' + response.status);
             }
