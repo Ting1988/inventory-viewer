@@ -202,7 +202,9 @@
 <div id="toast" class="toast"><\/div>
 
 <script>
-    var DATA_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
+    // 优先尝试相对路径（避免跨域和CDN同步延迟），备用绝对路径
+    var DATA_URL = 'inventory.json';
+    var BACKUP_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
     var allData = [];
     var filteredData = [];
     var expandedRows = new Set();
@@ -304,14 +306,25 @@
             btn.textContent = '⏳ 加载中...';
             btn.disabled = true;
         }
-        // 加时间戳避免浏览器缓存
-        var url = DATA_URL + '?t=' + Date.now();
+        
+        // 加时间戳避免浏览器和CDN缓存
+        var timestamp = Date.now();
+        var url = DATA_URL + '?t=' + timestamp;
         
         try {
-            var response = await fetchWithTimeout(url, {
-                cache: 'no-cache',
-                headers: { 'Cache-Control': 'no-cache' }
-            }, 10);
+            var response;
+            try {
+                response = await fetchWithTimeout(url, {
+                    cache: 'no-cache',
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+                }, 10);
+            } catch (e) {
+                console.warn('相对路径加载失败，尝试备用地址:', e);
+                response = await fetchWithTimeout(BACKUP_URL + '?t=' + timestamp, {
+                    cache: 'no-cache',
+                    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+                }, 10);
+            }
             
             if (response.ok) {
                 var data = await response.json();
