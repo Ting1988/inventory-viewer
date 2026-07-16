@@ -202,9 +202,9 @@
 <div id="toast" class="toast"><\/div>
 
 <script>
-    // 优先尝试相对路径（避免跨域和CDN同步延迟），备用绝对路径
-    var DATA_URL = 'inventory.json';
-    var BACKUP_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
+    // 优先使用 raw.githubusercontent.com（避免GitHub Pages CDN缓存延迟），备用相对路径
+    var DATA_URL = 'https://raw.githubusercontent.com/Ting1988/inventory-viewer/main/inventory.json';
+    var BACKUP_URL = 'inventory.json';
     var LOCAL_DATA_URL = './inventory.json';
     var allData = [];
     var filteredData = [];
