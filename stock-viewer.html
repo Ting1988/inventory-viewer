@@ -205,6 +205,7 @@
     // 优先尝试相对路径（避免跨域和CDN同步延迟），备用绝对路径
     var DATA_URL = 'inventory.json';
     var BACKUP_URL = 'https://ting1988.github.io/inventory-viewer/inventory.json';
+    var LOCAL_DATA_URL = './inventory.json';
     var allData = [];
     var filteredData = [];
     var expandedRows = new Set();
@@ -308,11 +309,31 @@
             btn.disabled = true;
         }
         
-        // 加时间戳避免浏览器和CDN缓存
-        var timestamp = Date.now();
-        var url = DATA_URL + '?t=' + timestamp;
-        
         try {
+            var api = window.electronAPI || (window.parent && window.parent.electronAPI);
+            if (api && api.getInventoryData) {
+                console.log('🔌 通过 Electron API 获取本地库存数据');
+                var localData = await api.getInventoryData();
+                if (localData && localData.rows) {
+                    allData = localData.rows;
+                    var updateTime = localData.updateTime || new Date().toLocaleString();
+                    document.getElementById('lastUpdate').innerHTML = updateTime + ' (本地)';
+                    document.getElementById('dataCount').innerHTML = allData.length;
+                    localStorage.setItem('inventory_cache', JSON.stringify({ rows: allData, updateTime: updateTime }));
+                    applyFilter();
+                    showMsg('✅ 已从本地加载 ' + allData.length + ' 条数据');
+                    if (showLoadingMsg !== false) {
+                        btn.textContent = '🔄 刷新数据';
+                        btn.disabled = false;
+                    }
+                    return;
+                }
+            }
+            
+            // 加时间戳避免浏览器和CDN缓存
+            var timestamp = Date.now();
+            var url = DATA_URL + '?t=' + timestamp;
+            
             var response;
             try {
                 response = await fetchWithTimeout(url, {
