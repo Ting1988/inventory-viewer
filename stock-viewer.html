@@ -207,6 +207,7 @@
 <script>
     var DATA_URL = 'inventory.json';
     var BACKUP_URL = 'https://raw.githubusercontent.com/Ting1988/inventory-viewer/main/inventory.json';
+    var GITHACK_URL = 'https://raw.githack.com/Ting1988/inventory-viewer/main/inventory.json';
     var allData = [];
     var filteredData = [];
     var expandedRows = new Set();
@@ -354,6 +355,7 @@
         var sources = [
             { url: './inventory.json', name: '本地文件', timeout: 5 },
             { url: '/inventory.json', name: '本地服务器', timeout: 5 },
+            { url: GITHACK_URL + '?t=' + Date.now(), name: 'GitHack', timeout: 10 },
             { url: DATA_URL + '?t=' + Date.now(), name: 'Gitee', timeout: 10 },
             { url: BACKUP_URL + '?t=' + Date.now(), name: 'GitHub', timeout: 15 }
         ];
