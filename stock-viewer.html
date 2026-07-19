@@ -336,6 +336,11 @@
         } catch(e) {}
         
         loadFromEmbedded();
+        
+        if (showLoadingMsg !== false) {
+            btn.textContent = '🔄 刷新数据';
+            btn.disabled = false;
+        }
     }
 
     function loadFromEmbedded() {
@@ -553,7 +558,7 @@
     }
     
     loadColumnWidths();
-    document.getElementById('refreshBtn').addEventListener('click', function() { loadData(true); });
+    document.getElementById('refreshBtn').addEventListener('click', function() { fetchLatestData(); });
     document.getElementById('clearFilterBtn').addEventListener('click', clearFilter);
     
     loadData(false);
