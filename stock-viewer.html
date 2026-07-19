@@ -205,7 +205,7 @@
 <div id="toast" class="toast"></div>
 
 <script>
-    var DATA_URL = 'https://raw.githubusercontent.com/Ting1988/inventory-viewer/main/inventory.json';
+    var DATA_URL = 'inventory.json';
     var allData = [];
     var filteredData = [];
     var expandedRows = new Set();
@@ -350,48 +350,68 @@
 
     function fetchLatestData() {
         var btn = document.getElementById('refreshBtn');
-        var timestamp = Date.now();
-        var url = DATA_URL + '?t=' + timestamp;
+        var sources = [
+            { url: './inventory.json', name: '本地文件', timeout: 5 },
+            { url: '/inventory.json', name: '本地服务器', timeout: 5 },
+            { url: DATA_URL + '?t=' + Date.now(), name: 'Gitee', timeout: 10 }
+        ];
         
-        fetchWithTimeout(url, {
-            cache: 'no-cache',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-        }, 10).then(function(response) {
-            if (response.ok) {
-                return response.text();
-            }
-            throw new Error('HTTP ' + response.status);
-        }).then(function(text) {
-            try {
-                var firstBrace = text.indexOf('{');
-                var lastBrace = text.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                    text = text.substring(firstBrace, lastBrace + 1);
+        var currentIndex = 0;
+        
+        function tryNextSource() {
+            if (currentIndex >= sources.length) {
+                console.log('所有数据源都无法获取最新数据');
+                if (btn) {
+                    btn.textContent = '🔄 刷新数据';
+                    btn.disabled = false;
                 }
-                var data = JSON.parse(text);
-                if (data.rows && data.updateTime) {
-                    var cached = localStorage.getItem('inventory_cache');
-                    var cacheUpdateTime = cached ? JSON.parse(cached).updateTime : '';
-                    if (data.updateTime !== cacheUpdateTime) {
-                        allData = data.rows;
-                        document.getElementById('lastUpdate').innerHTML = data.updateTime;
-                        document.getElementById('dataCount').innerHTML = allData.length;
-                        localStorage.setItem('inventory_cache', JSON.stringify(data));
-                        applyFilter();
-                        showMsg('🔄 数据已更新至最新: ' + data.updateTime);
+                return;
+            }
+            
+            var source = sources[currentIndex++];
+            fetchWithTimeout(source.url, {
+                cache: 'no-cache',
+                headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+            }, source.timeout).then(function(response) {
+                if (response.ok) {
+                    return response.text();
+                }
+                throw new Error('HTTP ' + response.status);
+            }).then(function(text) {
+                try {
+                    var firstBrace = text.indexOf('{');
+                    var lastBrace = text.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                        text = text.substring(firstBrace, lastBrace + 1);
                     }
+                    var data = JSON.parse(text);
+                    if (data.rows && data.updateTime) {
+                        var cached = localStorage.getItem('inventory_cache');
+                        var cacheUpdateTime = cached ? JSON.parse(cached).updateTime : '';
+                        if (data.updateTime !== cacheUpdateTime) {
+                            allData = data.rows;
+                            document.getElementById('lastUpdate').innerHTML = data.updateTime;
+                            document.getElementById('dataCount').innerHTML = allData.length;
+                            localStorage.setItem('inventory_cache', JSON.stringify(data));
+                            applyFilter();
+                            showMsg('🔄 数据已更新至最新: ' + data.updateTime + ' (' + source.name + ')');
+                        }
+                    }
+                } catch (parseErr) {
+                    console.error('JSON解析失败:', parseErr);
                 }
-            } catch (parseErr) {
-                console.error('JSON解析失败:', parseErr);
-            }
-        }).catch(function(error) {
-            console.log('后台更新失败，使用内嵌数据:', error);
-        }).finally(function() {
-            if (btn) {
-                btn.textContent = '🔄 刷新数据';
-                btn.disabled = false;
-            }
-        });
+            }).catch(function(error) {
+                console.log(source.name + '获取失败，尝试下一个:', error);
+                tryNextSource();
+            }).finally(function() {
+                if (btn) {
+                    btn.textContent = '🔄 刷新数据';
+                    btn.disabled = false;
+                }
+            });
+        }
+        
+        tryNextSource();
     }
     
     function applyFilter() {
