@@ -1,0 +1,35 @@
+name: Build Inventory Viewer
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Inject data into HTML
+      run: |
+        if [ -f inventory.json ]; then
+          DATA=$(cat inventory.json | tr -d '\n')
+          sed -i "s|var embeddedData = {};|var embeddedData = ${DATA};|" stock-viewer.html
+          echo "Data injected successfully"
+        else
+          echo "inventory.json not found"
+        fi
+    
+    - name: Commit changes
+      run: |
+        git config --local user.email "actions@github.com"
+        git config --local user.name "GitHub Actions"
+        git add stock-viewer.html
+        git diff --cached --quiet || git commit -m "Auto-update embedded data"
+        git push origin main
